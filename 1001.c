@@ -31,7 +31,7 @@ Node *createNode(const char *name, int level)
 {
     Node *newNode = (Node *)malloc(sizeof(Node));
     strcpy(newNode->name, name);
-    newNode->level = level;
+    newNode->level = level; // a->b->c
     newNode->next = NULL;
     return newNode;
 }
@@ -50,8 +50,8 @@ void request(Queue *q, const char *name, int level)
     }
     Node *prev = NULL;
     Node *temp = q->front;
-    while (temp != NULL && temp->level >= level)
-    {
+    while (temp != NULL && temp->level >= level) // 最开始的等级大于等于新插入的等级
+    {                                            // 遍历
         prev = temp;
         temp = temp->next;
     }
@@ -109,10 +109,10 @@ void removeUser(Queue *q, const char *name)
     }
     Node *prev = NULL;
     Node *curr = q->front;
-    while (curr != NULL && strcmp(curr->name, name) != 0)
+    while (curr != NULL && strcmp(curr->name, name) != 0) // 两个不相同的话
     {
         prev = curr;
-        curr = curr->next;
+        curr = curr->next; // 遍历
     }
     if (curr == NULL)
     {
@@ -159,7 +159,7 @@ void display(Queue *q)
         printf("用户名: %-10s | level: %d\n", curr->name, curr->level);
         // TODO：请完善剩余代码逻辑
         curr = curr->next;
-    }
+    } // 打印
 }
 
 // 主函数：模拟操作命令
