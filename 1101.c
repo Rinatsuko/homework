@@ -3,7 +3,7 @@
 #include <string.h>
 
 // 歌曲节点结构体
-typedef struct Song
+typedef struct Song // 歌曲节点
 {
     int id;
     char title[100];
@@ -12,7 +12,7 @@ typedef struct Song
     struct Song *next;
 } Song;
 
-// 播放列表管理器
+// 播放列表管理器 包括播放列表的头音乐 尾音乐 头部音乐 以及歌曲总数四个信息
 typedef struct PlaylistManager
 {
     Song *head;
@@ -34,25 +34,6 @@ int play_song_random(PlaylistManager *manager);                                 
 int insert_song_at(PlaylistManager *manager, int position, const char *title, const char *artist, const char *filepath); // 向指定位置添加音乐
 void destroy_playlist(PlaylistManager *manager);                                                                         // 清空列表
 
-// linux/Mac 版本
-// void play_audio(const char* filename) {
-//     char command[256];
-//     FILE *mp3File = fopen(filename, "rb");
-//     if (!mp3File) {
-//         printf("无法打开文件 %s\n", filename);
-//         return;
-//     }
-//     else{
-//         printf("Founded File!!");
-//     }
-//     snprintf(command, sizeof(command), "afplay \"%s\"", filename);
-//     int ret = system(command);
-//     if (ret != 0) {
-//         printf("播放失败或中断，请检查文件格式是否支持。\n");
-//     }
-// }
-
-// Windows 版本
 void play_audio(const char *filename)
 {
     char command[256];
@@ -72,14 +53,26 @@ void play_audio(const char *filename)
     {
         printf("播放失败或中断，请检查文件格式是否支持。\n");
     }
-
-    // 或者使用 Windows Media Player
-    // sprintf(command, "wmplayer \"%s\"", filename);
-    // system(command);
 }
 
 int load_songs_from_file(PlaylistManager *manager, const char *filename)
 {
+    FILE *file = fopen(filename, "r");
+    if (file == NULL)
+    {
+        return -1;
+    }
+
+    int id;
+    char title[100];
+    char artist[50];
+    char filepath[300];
+
+    while (fscanf(file, "%d %s %s %s", &id, title, artist, filepath) == 4)
+    {
+        add_song(manager, title, artist, filepath);
+    }
+    fclose(file);
     return 0;
 }
 
@@ -93,28 +86,124 @@ void init_playlist_manager(PlaylistManager *manager)
 }
 
 // 1. 在链表末尾添加歌曲
-void add_song(PlaylistManager *manager, const char *title, const char *artist,
-              const char *filepath)
+void add_song(PlaylistManager *manager, const char *title, const char *artist, const char *filepath)
 {
-    return;
+    Song *newsong = (Song *)malloc(sizeof(Song));
+    if (newsong == NULL)
+        return; // 检查内存分配
+
+    // ID 生成模块：使用当前歌曲总数 + 1 作为新 ID
+    newsong->id = manager->song_count + 1;
+    // 字符串数组赋值要用strcpy
+    strcpy(newsong->title, title);
+    strcpy(newsong->artist, artist);
+    strcpy(newsong->filepath, filepath);
+
+    newsong->next = NULL; // 新节点是最后一个，next 必须为空
+    if (manager->head == NULL)
+    {
+        manager->head = newsong;
+        manager->tail = newsong;
+    }
+    else
+    {
+        manager->tail->next = newsong; // 旧尾巴指向新节点
+        manager->tail = newsong;       // 更新尾指针指向新节点
+    }
+
+    manager->song_count++; // 增加歌曲总数
 }
 
 // 2. 显示播放列表
 void display_playlist(PlaylistManager *manager)
 {
-    return;
+    Song *temp = manager->head;
+    if (temp == NULL)
+    {
+        printf("播放列表为空\n");
+        return;
+    }
+
+    // 遍历整个链表，直到 temp 为 NULL
+    while (temp != NULL)
+    {
+        printf("ID: %d, 标题: %s, 作者: %s\n", temp->id, temp->title, temp->artist);
+        temp = temp->next;
+    }
 }
 
 // 3. 删除歌曲
 int delete_songs_by_title(PlaylistManager *manager, const char *title)
 {
+    Song *temp = manager->head;
+    if (temp == NULL)
+    {
+        printf("播放列表为空，无法删除歌曲\n");
+        return -1;
+    }
+    // 删除队头歌曲
+    if (strcmp(title, temp->title) == 0)
+    {
+        if (manager->head == manager->tail)
+        {
+            manager->head = NULL;
+            manager->tail = NULL;
+            manager->song_count--;
+            free(temp);
+            return 0;
+        }
+        Song *temp1 = temp->next;
+        free(temp);
+        manager->head = temp1;
+        manager->song_count--;
+        return 0;
+    }
+    // 删除队中或队尾歌曲
+    Song *prev = NULL; // 初始化 prev
+    while (temp != NULL && strcmp(title, temp->title) != 0)
+    { // temp != NULL 检查，防止越界，确保temp指向的是有效节点
+        prev = temp;
+        temp = temp->next;
+    }
+
+    // 如果遍历完也没找到
+    if (temp == NULL)
+    {
+        printf("未找到歌曲: %s\n", title);
+        return -1;
+    }
+
+    // 处理队尾情况
+    if (temp == manager->tail)
+    {
+        manager->tail = prev;
+        prev->next = NULL;
+        free(temp);
+        manager->song_count--;
+        return 0;
+    }
+    prev->next = temp->next;
+    free(temp);
+    manager->song_count--;
     return 0;
 }
 
 // 4. 播放歌曲
 int play_song_by_title(PlaylistManager *manager, const char *title)
 {
-    return 0;
+    Song *temp = manager->head;
+    while (temp != NULL)
+    {
+        if (strcmp(temp->title, title) == 0)
+        {
+            printf("正在播放: %s by %s\n", temp->title, temp->artist);
+            play_audio(temp->filepath);
+            return 0;
+        }
+        temp = temp->next;
+    }
+    printf("未找到歌曲: %s\n", title);
+    return -1;
 }
 
 // 5. 将播放列表保存到文件
