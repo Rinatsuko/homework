@@ -29,10 +29,10 @@ typedef struct
 /* =============== 工具 & 打印 =============== */
 static void print_head_no_count(const char *title, const Customer *arr, int n)
 {
-    printf("---- %s ----\n", title);
-    for (int i = 0; i < n; ++i)
+    printf("=== %s: n=%d ===\n", title, n);
+    for (int i = 0; i < n; i++)
     {
-        printf("[%05d] id=%d interest=%.2f\n", i, arr[i].id, arr[i].interest);
+        printf("ID: %d, Interest: %.2f\n", arr[i].id, arr[i].interest);
     }
 }
 /* ================= 无序数组 ================= */

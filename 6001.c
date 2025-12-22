@@ -1,72 +1,75 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+
 typedef struct student
 {
     int *scores;
 } student;
-double calculate_average(student *ptr);
-int findmax(student *ptr);
-int findmin(student *ptr);
-int main()
+
+// 2. 辅助函数：计算单个学生的最终得分
+// 参数传入 student 结构体(值传递即可) 和 评委数 m
+double get_final_score(student s, int m)
 {
-    int n, m; // n个学生,每个学生有m个评委打分
-    scanf("%d %d", &n, &m);
-    student *student_ptr = (student *)malloc(n * sizeof(student));
-    for (int i = 0; i < n; i++)
-    { // 给每个学生的数组分配m个内存空间
-        student_ptr[i].scores = (int *)malloc(m * sizeof(int));
-    }
-    for (int i = 0; i < n; i++)
+    int max = s.scores[0];
+    int min = s.scores[0];
+    int sum = 0;
+
+    for (int i = 0; i < m; i++)
     {
-        for (int j = 0; j < m; j++)
-        {
-            int k;
-            scanf("%d", &k);
-            student_ptr[i].scores[j] = k;
-        }
+        int val = s.scores[i];
+        sum += val;
+
+        if (val > max)
+            max = val;
+        if (val < min)
+            min = val;
     }
-}
-int findmax(student *ptr, int scoresnumber)
-{
-    int max = ptr->scores[0];
-    for (int i = 0; i < scoresnumber; i++)
-    {
-        if (ptr->scores[i] > max)
-        {
-            max = ptr->scores[i];
-        }
-    }
-    return max;
-}
-double calculate_average(student *ptr, int scoresnumber, int studentnumber, int arr[]) // arr来存储每个学生的分数
-{
-    for (int i = 0; i < studentnumber; i++)
-    {
-        int sum = 0;
-        int max = findmax(ptr[i], scoresnumber);
-        int min = findmin(ptr[i], scoresnumber);
-        for (int j = 0; j < scoresnumber; j++)
-        {
-            sum += ptr[i].scores[j];
-        }
-        int sum1 = sum - max - min;
-        double average = (.2 % lf)(sum1 / (m - 2));
-        arr[i] = average;
-    }
-    // findmax logic
-    // return max
+
+    // 核心公式：(总分 - 最高 - 最低) / (人数 - 2)
+    // 注意：必须除以 (m - 2.0) 或者强转 double，否则会丢失小数
+    return (double)(sum - max - min) / (m - 2);
 }
 
-int findmin(student *ptr, int scoresnumber)
+int main()
 {
-    int min = ptr.scores[0];
-    for (int i = 0; i < scoresnumber; i++)
+    int n, m;
+    if (scanf("%d %d", &n, &m) != 2)
+        return 1;
+    student *students = (student *)malloc(n * sizeof(student));
+    if (students == NULL)
+        return 1;
+    for (int i = 0; i < n; i++)
     {
-        if (ptr.scores[i] < max)
+        // 给当前学生的 scores 指针分配 m 个整数的空间
+        students[i].scores = (int *)malloc(m * sizeof(int));
+
+        // 读取 m 个评委的分数
+        for (int j = 0; j < m; j++)
         {
-            min = ptr.scores[i];
+            scanf("%d", &students[i].scores[j]);
         }
     }
-    return min;
+
+    double highest_score = -1.0;
+
+    for (int i = 0; i < n; i++)
+    {
+        // 调用函数
+        double current_avg = get_final_score(students[i], m);
+
+        if (current_avg > highest_score)
+        {
+            highest_score = current_avg;
+        }
+    }
+
+    printf("%.2f\n", highest_score);
+
+    for (int i = 0; i < n; i++)
+    {
+        free(students[i].scores);
+    }
+    free(students);
+
+    return 0;
 }
