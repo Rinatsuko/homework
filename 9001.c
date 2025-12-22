@@ -13,7 +13,7 @@ typedef struct
 typedef struct
 {
     StackElem *data;  // 栈数据数组
-    int top;          // 栈顶指针（-1表示空栈）
+    int top;          // 栈顶指针（-1表示空栈）也是代表数组下表 比如说top是2 说明栈顶元素就是data[2]
     int capacity;     // 当前栈容量
     int max_capacity; // 最大容量
 } Stack;
@@ -65,19 +65,19 @@ StackResult stackPush(Stack *stack, char bracket, int position)
             return STACK_FULL; // 已达最大容量，无法扩容
         }
         int new_capacity = stack->capacity * 2;
-        if (new_capacity > stack->max_capacity)
+        if (new_capacity > stack->max_capacity) // 新容量大于最大容量 则更新
         {
             new_capacity = stack->max_capacity; // 不超过最大容量
         }
-        StackElem *new_data = (StackElem *)realloc(stack->data, sizeof(StackElem) * new_capacity);
+        StackElem *new_data = (StackElem *)realloc(stack->data, sizeof(StackElem) * new_capacity); // 扩建房子本身而不是扩大房产证
         if (new_data == NULL)
         {
             return STACK_MEM_ERR; // 内存分配失败
         }
         stack->data = new_data;
         stack->capacity = new_capacity;
-        stack->data[stack->top + 1].bracket = bracket;
-        stack->data[stack->top + 1].position = position;
+        stack->data[stack->top + 1].bracket = bracket;   // 新的栈顶元素
+        stack->data[stack->top + 1].position = position; // 新的栈顶元素索引
         stack->top++;
         return STACK_OK;
     }
@@ -144,9 +144,9 @@ void stackDestroy(Stack *stack)
     stack->capacity = 0;
     stack->max_capacity = 0;
 }
-
-// 辅助函数
-// 判断是否为左括号
+// 1为真 0为假
+//  辅助函数
+//  判断是否为左括号
 int isLeftBracket(char ch)
 {
     return ch == '{' || ch == '[';
@@ -232,7 +232,7 @@ int jsonBracketCheckAdvanced(const char *json_str)
             }
             else
             {
-                if (ch == '\\')
+                if (ch == '\\') // 捕捉到转义符 下一步进入转义状态
                 {
                     escape = 1; // 进入转义状态
                 }
