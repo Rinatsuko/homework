@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
+#include <windows.h>
+#include <mmsystem.h>
 
 // 歌曲节点结构体
 typedef struct Song // 歌曲节点
@@ -43,39 +46,42 @@ void play_audio(const char *filename)
         printf("无法打开文件 %s\n", filename);
         return;
     }
-    else
-    {
-        printf("Founded File!!");
-    }
-    snprintf(command, sizeof(command), "start \"\" \"%s\"", filename);
-    int ret = system(command);
+    fclose(mp3File);
+
+    // 停止当前可能正在播放的音乐
+    mciSendString("close current_song", NULL, 0, NULL);
+
+    // 使用 MCI 命令打开音乐文件，别名为 current_song
+    // type mpegvideo 支持 mp3 等多种格式
+    snprintf(command, sizeof(command), "open \"%s\" type mpegvideo alias current_song", filename);
+
+    int ret = mciSendString(command, NULL, 0, NULL);
     if (ret != 0)
     {
         printf("播放失败或中断，请检查文件格式是否支持。\n");
     }
+
+    // 播放音乐
+    mciSendString("play current_song", NULL, 0, NULL);
+    // printf("正在后台播放...\n");
 }
 
 int load_songs_from_file(PlaylistManager *manager, const char *filename)
 {
     FILE *file = fopen(filename, "r");
     if (file == NULL)
-    {
         return -1;
-    }
 
-    int id;
-    char title[100];
-    char artist[50];
-    char filepath[300];
-
-    while (fscanf(file, "%d %s %s %s", &id, title, artist, filepath) == 4)
+    char title[100], artist[50], filepath[300];
+    // 使用 %[^,] 读取逗号前的内容，用 ,%[^,] 跳过逗号继续读取
+    // 最后一项读取到换行符为止 %s 或 %[^\n]
+    while (fscanf(file, " %[^,],%[^,],%s", title, artist, filepath) == 3)
     {
         add_song(manager, title, artist, filepath);
     }
     fclose(file);
     return 0;
 }
-
 // 初始化播放管理器
 void init_playlist_manager(PlaylistManager *manager)
 {
@@ -209,12 +215,43 @@ int play_song_by_title(PlaylistManager *manager, const char *title)
 // 5. 将播放列表保存到文件
 int export_playlist(PlaylistManager *manager, const char *filename)
 {
+    Song *temp = manager->head;
+    if (temp == NULL)
+    {
+        printf("播放列表为空，无法导出\n");
+        return -1;
+    }
+    FILE *file = fopen(filename, "w");
+    if (file == NULL)
+    {
+        printf("无法打开文件 %s 进行写入\n", filename);
+        return -1;
+    }
+    for (int i = 0; i < manager->song_count && temp != NULL; i++)
+    {
+        fprintf(file, "%d. %s by %s\n", i + 1, temp->title, temp->artist);
+        temp = temp->next;
+    }
+    fclose(file);
+    printf("播放列表已导出到 %s\n", filename);
     return 0;
 }
 
 // 6. 随机播放歌曲（非必做）
 int play_song_random(PlaylistManager *manager)
 {
+    if (manager->song_count == 0)
+        return -1;
+
+    srand(time(NULL)); // 初始化随机种子
+    int index = rand() % manager->song_count;
+
+    Song *curr = manager->head;
+    for (int i = 0; i < index; i++)
+        curr = curr->next;
+
+    printf("随机推荐: %s\n", curr->title);
+    play_audio(curr->filepath);
     return 0;
 }
 
@@ -222,6 +259,56 @@ int play_song_random(PlaylistManager *manager)
 int insert_song_at(PlaylistManager *manager, int position, const char *title,
                    const char *artist, const char *filepath)
 {
+    if (position < 1 || position > manager->song_count + 1)
+    {
+        printf("插入位置无效: %d\n", position);
+        return -1;
+    }
+
+    Song *newsong = (Song *)malloc(sizeof(Song));
+    if (newsong == NULL)
+    {
+        printf("内存分配失败\n");
+        return -1;
+    }
+
+    // ID 生成
+    newsong->id = manager->song_count + 1;
+    strcpy(newsong->title, title);
+    strcpy(newsong->artist, artist);
+    strcpy(newsong->filepath, filepath);
+
+    // 插入到头部
+    if (position == 1)
+    {
+        newsong->next = manager->head;
+        manager->head = newsong;
+        if (manager->tail == NULL) // 如果原本链表为空
+        {
+            manager->tail = newsong;
+        }
+    }
+    else
+    {
+        // 找到插入位置的前一个节点
+        Song *prev = manager->head;
+        for (int i = 1; i < position - 1; i++)
+        {
+            prev = prev->next;
+        }
+
+        newsong->next = prev->next;
+        prev->next = newsong;
+
+        // 如果插入的是最后一个位置，更新 tail
+        if (newsong->next == NULL)
+        {
+            manager->tail = newsong;
+        }
+    }
+
+    manager->song_count++;
+    printf("成功在位置 %d 插入歌曲: %s\n", position, title);
     return 0;
 }
 
@@ -308,12 +395,10 @@ int main()
         case 1:
         { // 添加歌曲
             char title[100], artist[50], filepath[300];
-            float duration;
 
             get_user_input(title, sizeof(title), "请输入歌曲标题: ");
             get_user_input(artist, sizeof(artist), "请输入作者: ");
             get_user_input(filepath, sizeof(filepath), "请输入歌曲路径: ");
-            clear_input_buffer();
 
             add_song(&manager, title, artist, filepath);
             break;
@@ -367,11 +452,8 @@ int main()
             break;
         }
         case 0: // 退出程序
-            printf("感谢使用链表音乐播放器管理器!\n");
-            break;
-
-        default:
-            printf("无效选择，请重新输入\n");
+            // 在退出前自动导出，确保生成实验要求的文件
+            export_playlist(&manager, "song_list_result.txt");
             break;
         }
 

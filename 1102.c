@@ -1,318 +1,471 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
-// ¸èÇú½Úµã½á¹¹Ìå
-typedef struct Song {
+// æ­Œæ›²èŠ‚ç‚¹ç»“æ„ä½“
+typedef struct Song
+{
     int id;
     char title[100];
     char artist[50];
     char filepath[300];
-    struct Song* prev;
-    struct Song* next;
+    struct Song *prev;
+    struct Song *next;
 } Song;
 
-// ²¥·ÅÁĞ±í¹ÜÀíÆ÷
-typedef struct PlaylistManager{
-    Song* head;
-    Song* tail;
-    Song* current;
+// æ’­æ”¾åˆ—è¡¨ç®¡ç†å™¨
+typedef struct PlaylistManager
+{
+    Song *head;
+    Song *tail;
+    Song *current;
     int song_count;
 } PlaylistManager;
 
-// º¯ÊıÉùÃ÷
-void init_playlist_manager(PlaylistManager* manager);                           // ³õÊ¼»¯Á´±í
-int load_songs_from_file(PlaylistManager* manager, const char* filename);       // ´ÓÎÄ¼şÖĞ¶ÁÈ¡µ½Á´±í
-void add_song(PlaylistManager* manager, const char* title, const char* artist,  // ÈË¹¤Ôö¼ÓÒôÀÖ
-              const char* filepath);
-int delete_song_by_title(PlaylistManager* manager, const char* title);                   // É¾³ıÖ¸¶¨Ãû×ÖµÄÒôÀÖ
-int play_song_by_title(PlaylistManager* manager, const char* title);                     // ¸ù¾İÃû×Ö²¥·ÅÒôÀÖ
-void display_playlist(PlaylistManager* manager);                                // ÏÔÊ¾²¥·ÅÁĞ±í£¨ÕıÏò£©
-void display_playlist_reverse(PlaylistManager* manager);                        // ÏÔÊ¾²¥·ÅÁĞ±í£¨·´Ïò£©
-int export_playlist(PlaylistManager* manager, const char* filename);            // µ¼³ö¸èµ¥
-void next_song(PlaylistManager* manager);                                       // ÏÂÒ»Ê×¸è
-void previous_song(PlaylistManager* manager);                                   // ÉÏÒ»Ê×¸è
-int play_song_random(PlaylistManager* manager);                                 // Ëæ»ú²¥·ÅÒôÀÖ£¨·Ç±Ø×ö£©
-int insert_song_at(PlaylistManager* manager, int position, const char* title, const char* artist, const char* filepath);    // ÏòÖ¸¶¨Î»ÖÃÌí¼ÓÒôÀÖ£¨·Ç±Ø×ö£©
-void clear_playlist(PlaylistManager* manager);                                  // Çå¿Õ²¥·ÅÁĞ±í£¨·Ç±Ø×ö£©
-void sort_by_title(PlaylistManager* manager);                                   // °´ÕÕ¸èÇúÃûÅÅĞò£¨·Ç±Ø×ö£©
+// å‡½æ•°å£°æ˜
+void init_playlist_manager(PlaylistManager *manager);                          // åˆå§‹åŒ–é“¾è¡¨
+int load_songs_from_file(PlaylistManager *manager, const char *filename);      // ä»æ–‡ä»¶ä¸­è¯»å–åˆ°é“¾è¡¨
+void add_song(PlaylistManager *manager, const char *title, const char *artist, // äººå·¥å¢åŠ éŸ³ä¹
+              const char *filepath);
+int delete_song_by_title(PlaylistManager *manager, const char *title); // åˆ é™¤æŒ‡å®šåå­—çš„éŸ³ä¹
+int play_song_by_title(PlaylistManager *manager, const char *title);   // æ ¹æ®åå­—æ’­æ”¾éŸ³ä¹
+void display_playlist(PlaylistManager *manager);                       // æ˜¾ç¤ºæ’­æ”¾åˆ—è¡¨ï¼ˆæ­£å‘ï¼‰
+void display_playlist_reverse(PlaylistManager *manager);               // æ˜¾ç¤ºæ’­æ”¾åˆ—è¡¨ï¼ˆåå‘ï¼‰
+int export_playlist(PlaylistManager *manager, const char *filename);   // å¯¼å‡ºæ­Œå•
+void next_song(PlaylistManager *manager);                              // ä¸‹ä¸€é¦–æ­Œ
+void previous_song(PlaylistManager *manager);                          // ä¸Šä¸€é¦–æ­Œ
+int play_song_random(PlaylistManager *manager);                        // éšæœºæ’­æ”¾éŸ³ä¹ï¼ˆéå¿…åšï¼‰
+void sort_by_title(PlaylistManager *manager);                          // æŒ‰ç…§æ­Œæ›²åæ’åºï¼ˆéå¿…åšï¼‰
+void destroy_playlist(PlaylistManager *manager);                       // æ¸…ç©ºæ’­æ”¾åˆ—è¡¨
 
+// æ’­æ”¾éŸ³é¢‘å‡½æ•° (Windowsç‰ˆæœ¬)
+void play_audio(const char *filename)
+{
+    char command[512];
+    FILE *mp3File = fopen(filename, "rb");
+    if (!mp3File)
+    {
+        printf("æ— æ³•æ‰¾åˆ°æ–‡ä»¶: %s\n", filename);
+        return;
+    }
+    fclose(mp3File);
 
-// linux/Mac °æ±¾
-// void play_audio(const char* filename) {
-//     char command[256];
-//     FILE *mp3File = fopen(filename, "rb");
-//     if (!mp3File) {
-//         printf("ÎŞ·¨´ò¿ªÎÄ¼ş %s\n", filename);
-//         return;
-//     }
-//     else{
-//         printf("Founded File!!");
-//     }
-//     snprintf(command, sizeof(command), "afplay \"%s\"", filename);
-//     int ret = system(command);
-//     if (ret != 0) {
-//         printf("²¥·ÅÊ§°Ü»òÖĞ¶Ï£¬Çë¼ì²éÎÄ¼ş¸ñÊ½ÊÇ·ñÖ§³Ö¡£\n");
-//     }
-// }
-
-// Windows °æ±¾
-// void play_audio(const char* filename){
-//     char command[256];
-//     FILE *mp3File = fopen(filename, "rb");
-//     if (!mp3File) {
-//         printf("ÎŞ·¨´ò¿ªÎÄ¼ş %s\n", filename);
-//         return;
-//     }
-//     else{
-//         printf("Founded File!!");
-//     }
-//     snprintf(command, sizeof(command), "start \"\" \"%s\"", filename);
-//     int ret = system(command);
-//     if (ret != 0) {
-//         printf("²¥·ÅÊ§°Ü»òÖĞ¶Ï£¬Çë¼ì²éÎÄ¼ş¸ñÊ½ÊÇ·ñÖ§³Ö¡£\n");
-//     }
-    
-//     // »òÕßÊ¹ÓÃ Windows Media Player
-//     // sprintf(command, "wmplayer \"%s\"", filename);
-//     // system(command);
-// }
-
-void play_audio(const char* filename){
-    printf("Playing %s ...", filename);
+    // Windows: ä½¿ç”¨ start å‘½ä»¤è°ƒç”¨é»˜è®¤æ’­æ”¾å™¨
+    snprintf(command, sizeof(command), "start \"\" \"%s\"", filename);
+    int ret = system(command);
+    if (ret != 0)
+    {
+        printf("æ’­æ”¾å¤±è´¥ï¼Œè¯·æ£€æŸ¥æ–‡ä»¶å…³è”æˆ–è·¯å¾„ã€‚\n");
+    }
 }
 
-// ³õÊ¼»¯²¥·Å¹ÜÀíÆ÷
-void init_playlist_manager(PlaylistManager* manager){
+// åˆå§‹åŒ–æ’­æ”¾ç®¡ç†å™¨
+void init_playlist_manager(PlaylistManager *manager)
+{
     manager->head = NULL;
     manager->tail = NULL;
     manager->current = NULL;
     manager->song_count = 0;
 }
 
-// ´ÓÎÄ¼ş¶ÁÈ¡ÄÚÈİ¹¹½¨Ë«ÏòÁ´±í
-int load_songs_from_file(PlaylistManager* manager, const char* filename) {
+// 0. ä»æ–‡ä»¶è¯»å–å†…å®¹æ„å»ºåŒå‘é“¾è¡¨
+int load_songs_from_file(PlaylistManager *manager, const char *filename)
+{
+    FILE *file = fopen(filename, "r");
+    if (file == NULL)
+        return -1;
+
+    char title[100], artist[50], filepath[300];
+    // ä½¿ç”¨æ ¼å¼åŒ–è¯»å–ï¼Œå¤„ç† CSV æ ¼å¼
+    while (fscanf(file, " %[^,],%[^,],%s", title, artist, filepath) == 3)
+    {
+        add_song(manager, title, artist, filepath);
+    }
+    fclose(file);
     return 0;
 }
 
-// 1. ÔÚÁ´±íÄ©Î²Ìí¼Ó¸èÇú
-void add_song(PlaylistManager* manager, const char* title, const char* artist, const char* filepath) {
-    return;
+// 1. åœ¨é“¾è¡¨æœ«å°¾æ·»åŠ æ­Œæ›²
+void add_song(PlaylistManager *manager, const char *title, const char *artist, const char *filepath)
+{
+    Song *newsong = (Song *)malloc(sizeof(Song));
+    if (!newsong)
+        return;
+
+    newsong->id = manager->song_count + 1;
+    strcpy(newsong->title, title);
+    strcpy(newsong->artist, artist);
+    strcpy(newsong->filepath, filepath);
+    newsong->next = NULL;
+
+    if (manager->head == NULL)
+    {
+        newsong->prev = NULL;
+        manager->head = newsong;
+        manager->tail = newsong;
+    }
+    else
+    {
+        newsong->prev = manager->tail;
+        manager->tail->next = newsong;
+        manager->tail = newsong;
+    }
+    manager->song_count++;
 }
 
-// 2. °´±êÌâÉ¾³ı¸èÇú
-int delete_song_by_title(PlaylistManager* manager, const char* title) {
+// 2. æŒ‰æ ‡é¢˜åˆ é™¤æ­Œæ›²
+int delete_song_by_title(PlaylistManager *manager, const char *title)
+{
+    Song *temp = manager->head;
+    while (temp != NULL && strcmp(title, temp->title) != 0)
+    {
+        temp = temp->next;
+    }
+
+    if (temp == NULL)
+    {
+        printf("æœªæ‰¾åˆ°æ­Œæ›²: %s\n", title);
+        return -1;
+    }
+
+    if (temp == manager->current)
+        manager->current = NULL;
+
+    if (temp->prev)
+        temp->prev->next = temp->next;
+    else
+        manager->head = temp->next;
+
+    if (temp->next)
+        temp->next->prev = temp->prev;
+    else
+        manager->tail = temp->prev;
+
+    free(temp);
+    manager->song_count--;
+    printf("æˆåŠŸåˆ é™¤: %s\n", title);
     return 0;
 }
 
-// 3. ²¥·Å¸èÇú
-int play_song_by_title(PlaylistManager* manager, const char* title){
+// 3. æ’­æ”¾æ­Œæ›²
+int play_song_by_title(PlaylistManager *manager, const char *title)
+{
+    Song *temp = manager->head;
+    while (temp != NULL && strcmp(title, temp->title) != 0)
+    {
+        temp = temp->next;
+    }
+
+    if (temp)
+    {
+        printf("æ­£åœ¨æ’­æ”¾: %s - %s\n", temp->title, temp->artist);
+        play_audio(temp->filepath);
+        manager->current = temp;
+        return 0;
+    }
+    printf("æœªæ‰¾åˆ°æ­Œæ›²: %s\n", title);
+    return -1;
+}
+
+// 4. æ˜¾ç¤ºæ’­æ”¾åˆ—è¡¨ï¼ˆæ­£å‘éå†ï¼‰
+void display_playlist(PlaylistManager *manager)
+{
+    Song *temp = manager->head;
+    if (!temp)
+    {
+        printf("æ’­æ”¾åˆ—è¡¨ä¸ºç©º\n");
+        return;
+    }
+    printf("\nå½“å‰æ’­æ”¾åˆ—è¡¨:\n");
+    while (temp)
+    {
+        printf("[%d] %s - %s\n", temp->id, temp->title, temp->artist);
+        temp = temp->next;
+    }
+}
+
+// 5. æ˜¾ç¤ºæ’­æ”¾åˆ—è¡¨ï¼ˆåå‘éå†ï¼‰
+void display_playlist_reverse(PlaylistManager *manager)
+{
+    Song *temp = manager->tail;
+    if (!temp)
+    {
+        printf("æ’­æ”¾åˆ—è¡¨ä¸ºç©º\n");
+        return;
+    }
+    printf("\nå½“å‰æ’­æ”¾åˆ—è¡¨ (é€†åº):\n");
+    while (temp)
+    {
+        printf("[%d] %s - %s\n", temp->id, temp->title, temp->artist);
+        temp = temp->prev;
+    }
+}
+
+// 6. å°†æ’­æ”¾åˆ—è¡¨ä¿å­˜åˆ°æ–‡ä»¶
+int export_playlist(PlaylistManager *manager, const char *filename)
+{
+    FILE *file = fopen(filename, "w");
+    if (!file)
+        return -1;
+    Song *temp = manager->head;
+    while (temp)
+    {
+        fprintf(file, "%s,%s,%s\n", temp->title, temp->artist, temp->filepath);
+        temp = temp->next;
+    }
+    fclose(file);
+    printf("åˆ—è¡¨å·²å¯¼å‡ºè‡³ %s\n", filename);
     return 0;
 }
 
-// 4. ÏÔÊ¾²¥·ÅÁĞ±í£¨ÕıÏò±éÀú£©
-void display_playlist(PlaylistManager* manager) {
-    return;
+// 7. ä¸‹ä¸€é¦–
+void next_song(PlaylistManager *manager)
+{
+    if (!manager->head)
+        return;
+    if (!manager->current || !manager->current->next)
+        manager->current = manager->head;
+    else
+        manager->current = manager->current->next;
+
+    printf("åˆ‡æ¢è‡³ä¸‹ä¸€é¦–: %s\n", manager->current->title);
+    play_audio(manager->current->filepath);
 }
 
-// 5. ÏÔÊ¾²¥·ÅÁĞ±í£¨·´Ïò±éÀú£©
-void display_playlist_reverse(PlaylistManager* manager) {
-    return;
+// 8. ä¸Šä¸€é¦–
+void previous_song(PlaylistManager *manager)
+{
+    if (!manager->head)
+        return;
+    if (!manager->current || !manager->current->prev)
+        manager->current = manager->tail;
+    else
+        manager->current = manager->current->prev;
+
+    printf("åˆ‡æ¢è‡³ä¸Šä¸€é¦–: %s\n", manager->current->title);
+    play_audio(manager->current->filepath);
 }
 
-// 6. ½«²¥·ÅÁĞ±í±£´æµ½ÎÄ¼ş
-int export_playlist(PlaylistManager* manager, const char* filename) {
+// 9. éšæœºæ’­æ”¾æ­Œæ›²ï¼ˆéå¿…åšï¼‰
+int play_song_random(PlaylistManager *manager)
+{
+    if (manager->song_count == 0)
+        return -1;
+    int target = rand() % manager->song_count;
+    Song *temp = manager->head;
+    for (int i = 0; i < target; i++)
+        temp = temp->next;
+    manager->current = temp;
+    printf("éšæœºæ’­æ”¾: %s\n", temp->title);
+    play_audio(temp->filepath);
     return 0;
 }
 
-// 7. ÏÂÒ»Ê×
-void next_song(PlaylistManager* manager) {
-    return;
-}
-
-// 8. ÉÏÒ»Ê×
-void previous_song(PlaylistManager* manager) {
-    return;
-}
-
-// 9. Ëæ»ú²¥·Å¸èÇú£¨·Ç±Ø×ö£©
-int play_song_random(PlaylistManager* manager) {
-    return 0;
-}
-
-// 10. ÔÚÖ¸¶¨Î»ÖÃ²åÈë¸èÇú£¨·Ç±Ø×ö£©
-int insert_song_at(PlaylistManager* manager, int position, const char* title, 
-                   const char* artist, const char* filepath) {
-    return 1;
-}
-
-// 12. °´¸èÇú±êÌâÅÅĞò£¨·Ç±Ø×ö£©
-void sort_by_title(PlaylistManager* manager) {
-    return;
-}
-
-// Ïú»ÙÕû¸öÁ´±í
-void clear_playlist(PlaylistManager* manager) {
-    Song* current = manager->head;
-    while (current != NULL) {
-        Song* next = current->next;
-        free(current);
-        current = next;
+// 11. æ¸…ç©ºæ’­æ”¾åˆ—è¡¨
+void destroy_playlist(PlaylistManager *manager)
+{
+    Song *curr = manager->head;
+    while (curr)
+    {
+        Song *next = curr->next;
+        free(curr);
+        curr = next;
     }
     init_playlist_manager(manager);
-    printf("²¥·ÅÁĞ±íÒÑÇå¿Õ\n");
+    printf("æ’­æ”¾åˆ—è¡¨å·²æ¸…ç©º\n");
 }
 
+// 10. æŒ‰æ­Œæ›²æ ‡é¢˜æ’åºï¼ˆéå¿…åšï¼‰
+void sort_by_title(PlaylistManager *manager)
+{
+    if (manager->song_count < 2)
+        return;
+    int swapped;
+    Song *ptr1;
+    Song *lptr = NULL;
 
-void display_menu() {
-    printf("\n");
-    printf("Á´±íÒôÀÖ²¥·ÅÆ÷¹ÜÀíÆ÷\n");
-    printf("==========================================\n");
-    printf("1. Ìí¼Ó¸èÇú\n");
-    printf("2. É¾³ı¸èÇú (°´±êÌâ)\n");
-    printf("3. ²¥·Å¸èÇú (°´±êÌâ)\n");
-    printf("4. ÏÔÊ¾²¥·ÅÁĞ±í (ÕıÏò)\n");
-    printf("5. ÏÔÊ¾²¥·ÅÁĞ±í (ÄæÏò)\n");
-    printf("6. µ¼³ö¸èµ¥\n");
-    printf("7. ÇĞ»»µ½ÏÂÒ»Ê×¸è\n");
-    printf("8. ÇĞ»»µ½ÉÏÒ»Ê×¸è\n");
-    printf("9. Ëæ»ú²¥·Å¸èÇú(·Ç±Ø×ö)\n");
-    printf("10. ÔÚÖ¸¶¨Î»ÖÃÌí¼Ó¸èÇú(·Ç±Ø×ö)\n");
-    printf("11. Çå¿Õ²¥·ÅÁĞ±í(·Ç±Ø×ö)\n");
-    printf("12. °´ÕÕ¸èÇúÃûÅÅĞò(·Ç±Ø×ö)\n");
-    printf("0. ÍË³ö³ÌĞò\n");
-    printf("==========================================\n");
-    printf("ÇëÑ¡Ôñ²Ù×÷ (0-12): ");
+    do
+    {
+        swapped = 0;
+        ptr1 = manager->head;
+        while (ptr1->next != lptr)
+        {
+            if (strcmp(ptr1->title, ptr1->next->title) > 0)
+            {
+                // ä»…äº¤æ¢æ•°æ®åŸŸï¼Œä¸ç ´åé“¾è¡¨ç»“æ„
+                char t_title[100], t_artist[50], t_path[300];
+                strcpy(t_title, ptr1->title);
+                strcpy(t_artist, ptr1->artist);
+                strcpy(t_path, ptr1->filepath);
+
+                strcpy(ptr1->title, ptr1->next->title);
+                strcpy(ptr1->artist, ptr1->next->artist);
+                strcpy(ptr1->filepath, ptr1->next->filepath);
+
+                strcpy(ptr1->next->title, t_title);
+                strcpy(ptr1->next->artist, t_artist);
+                strcpy(ptr1->next->filepath, t_path);
+                swapped = 1;
+            }
+            ptr1 = ptr1->next;
+        }
+        lptr = ptr1;
+    } while (swapped);
+    printf("æŒ‰æ­Œåæ’åºå®Œæˆã€‚\n");
 }
 
-// Çå³ıÊäÈë»º³åÇø
-void clear_input_buffer() {
+void clear_input_buffer()
+{
     int c;
-    while ((c = getchar()) != '\n' && c != EOF);
+    while ((c = getchar()) != '\n' && c != EOF)
+        ;
 }
 
-// »ñÈ¡ÓÃ»§ÊäÈëµÄ×Ö·û´®
-void get_user_input(char* buffer, int size, const char* prompt) {
+void get_user_input(char *buffer, int size, const char *prompt)
+{
     printf("%s", prompt);
     fgets(buffer, size, stdin);
-
-    // È¥³ı»»ĞĞ·û
     size_t len = strlen(buffer);
-    if (len > 0 && buffer[len-1] == '\n') {
-        buffer[len-1] = '\0';
-    }
+    if (len > 0 && buffer[len - 1] == '\n')
+        buffer[len - 1] = '\0';
 }
 
-// Ö÷º¯Êı - ½»»¥Ê½³ÌĞò
-int main() {
+void display_menu()
+{
+    printf("\n");
+    printf("é“¾è¡¨éŸ³ä¹æ’­æ”¾å™¨ç®¡ç†å™¨\n");
+    printf("==========================================\n");
+    printf("1. æ·»åŠ æ­Œæ›²\n");
+    printf("2. åˆ é™¤æ­Œæ›² (æŒ‰æ ‡é¢˜)\n");
+    printf("3. æ’­æ”¾æ­Œæ›² (æŒ‰æ ‡é¢˜)\n");
+    printf("4. æ˜¾ç¤ºæ’­æ”¾åˆ—è¡¨ (æ­£å‘)\n");
+    printf("5. æ˜¾ç¤ºæ’­æ”¾åˆ—è¡¨ (é€†å‘)\n");
+    printf("6. å¯¼å‡ºæ­Œå•\n");
+    printf("7. åˆ‡æ¢åˆ°ä¸‹ä¸€é¦–æ­Œ\n");
+    printf("8. åˆ‡æ¢åˆ°ä¸Šä¸€é¦–æ­Œ\n");
+    printf("9. éšæœºæ’­æ”¾æ­Œæ›²(éå¿…åš)\n");
+    printf("10. æŒ‰ç…§æ­Œæ›²åæ’åº(éå¿…åš)\n");
+    printf("11. æ¸…ç©ºæ’­æ”¾åˆ—è¡¨\n");
+    printf("0. é€€å‡ºç¨‹åº\n");
+    printf("==========================================\n");
+    printf("è¯·é€‰æ‹©æ“ä½œ (0-11): ");
+}
+
+int main()
+{
+    srand((unsigned int)time(NULL));
     PlaylistManager manager;
     init_playlist_manager(&manager);
-    load_songs_from_file(&manager,"song_list.txt");
+    load_songs_from_file(&manager, "song_list.txt");
 
-    printf("=== Ë«ÏòÁ´±íÒôÀÖ²¥·ÅÆ÷¹ÜÀíÆ÷ ===\n");
-    printf("ÒÑ¼ÓÔØ %d Ê×Ê¾Àı¸èÇú\n", manager.song_count);
+    printf("=== åŒå‘é“¾è¡¨éŸ³ä¹æ’­æ”¾å™¨ç®¡ç†å™¨ ===\n");
+    printf("å·²åŠ è½½ %d é¦–ç¤ºä¾‹æ­Œæ›²\n", manager.song_count);
     manager.current = manager.head;
     int choice;
     char input[100];
 
-    do {
+    do
+    {
         display_menu();
 
-        if (scanf("%d", &choice) != 1) {
-            printf("ÎŞĞ§ÊäÈë£¬ÇëÊäÈëÊı×Ö\n");
+        if (scanf("%d", &choice) != 1)
+        {
+            printf("æ— æ•ˆè¾“å…¥ï¼Œè¯·è¾“å…¥æ•°å­—\n");
             clear_input_buffer();
             continue;
         }
         clear_input_buffer();
 
-        switch (choice) {
-            case 1: {                   // Ìí¼Ó¸èÇú
-                char title[100], artist[50], filepath[300];
-                float duration;
+        switch (choice)
+        {
+        case 1:
+        { // æ·»åŠ æ­Œæ›²
+            char title[100], artist[50], filepath[300];
+            float duration;
 
-                get_user_input(title, sizeof(title), "ÇëÊäÈë¸èÇú±êÌâ: ");
-                get_user_input(artist, sizeof(artist), "ÇëÊäÈë×÷Õß: ");
-                get_user_input(filepath, sizeof(filepath), "ÇëÊäÈë¸èÇúÂ·¾¶: ");
-                clear_input_buffer();
+            get_user_input(title, sizeof(title), "è¯·è¾“å…¥æ­Œæ›²æ ‡é¢˜: ");
+            get_user_input(artist, sizeof(artist), "è¯·è¾“å…¥ä½œè€…: ");
+            get_user_input(filepath, sizeof(filepath), "è¯·è¾“å…¥æ­Œæ›²è·¯å¾„: ");
 
-                add_song(&manager, title, artist, filepath);
-                break;
-            }
-            case 2: {                   // É¾³ı¸èÇú (°´±êÌâ)
-                char title[100];
-                get_user_input(title, sizeof(title), "ÇëÊäÈëÒªÉ¾³ıµÄ¸èÇú±êÌâ: ");
-                int res = delete_song_by_title(&manager, title);
-                break;
-            }
-            case 3: {                   // ²¥·Å¸èÇú£¨°´¸èÇúÃû£©
-                char title[100];
-                get_user_input(title, sizeof(title), "ÇëÊäÈëÒª²¥·ÅµÄ¸èÇú±êÌâ: ");
-                int res = play_song_by_title(&manager, title);
-                break;
-            }
-            case 4: {                   // ÏÔÊ¾²¥·ÅÁĞ±í£¨ÕıÏò£©
-                display_playlist(&manager);
-                break;
-            }
-            case 5: {                   // ÏÔÊ¾²¥·ÅÁĞ±í£¨ÄæÏò£©
-                display_playlist_reverse(&manager);
-                break;
-            }
-            case 6: {                   // µ¼³ö²¥·ÅÁĞ±í
-                char path2export[300];
-                get_user_input(path2export, sizeof(path2export), "ÇëÊäÈëÒªµ¼³öµÄÄ¿±êÎÄ¼şÃû: ");
-                int res = export_playlist(&manager, path2export);
-                break;
-            }
-            case 7: {                   // ²¥·ÅÏÂÒ»Ê×¸èÇú
-                next_song(&manager);
-                break;
-            }
-            case 8: {                   // ²¥·ÅÉÏÒ»Ê×¸èÇú
-                previous_song(&manager);
-                break;
-            }
-            case 9: {                   // Ëæ»ú²¥·Å¸èÇú(·Ç±Ø×ö)
-                int res = play_song_random(&manager);
-                break;
-            }
-            case 10: {                  // ÔÚÖ¸¶¨Î»ÖÃÌí¼Ó¸èÇú(·Ç±Ø×ö)
-                char title[100], artist[50], filepath[300];
-                int position;
-                get_user_input(title, sizeof(title), "ÇëÊäÈë¸èÇú±êÌâ: ");
-                get_user_input(artist, sizeof(artist), "ÇëÊäÈë×÷Õß: ");
-                get_user_input(filepath, sizeof(filepath), "ÇëÊäÈë¸èÇúÂ·¾¶: ");
-                printf("ÇëÊäÈë¸èÇú²åÈëÎ»ÖÃ: ");
-                scanf("%d", &position);
-                insert_song_at(&manager, position, title, artist, filepath);
-                break;
-            }
-            case 11: {                  // Çå¿Õ²¥·ÅÁĞ±í(·Ç±Ø×ö)
-                clear_playlist(&manager);
-                break;
-            }
-            case 12: {                  // °´ÕÕ¸èÇúÃûÅÅĞò(·Ç±Ø×ö)
-                sort_by_title(&manager);
-                break;
-            }
-            case 0: // ÍË³ö³ÌĞò
-                printf("¸ĞĞ»Ê¹ÓÃÁ´±íÒôÀÖ²¥·ÅÆ÷¹ÜÀíÆ÷!\n");
-                break;
-            default:
-                printf("? ÎŞĞ§Ñ¡Ôñ£¬ÇëÖØĞÂÊäÈë\n");
-                break;
+            add_song(&manager, title, artist, filepath);
+            break;
+        }
+        case 2:
+        { // åˆ é™¤æ­Œæ›² (æŒ‰æ ‡é¢˜)
+            char title[100];
+            get_user_input(title, sizeof(title), "è¯·è¾“å…¥è¦åˆ é™¤çš„æ­Œæ›²æ ‡é¢˜: ");
+            int res = delete_song_by_title(&manager, title);
+            break;
+        }
+        case 3:
+        { // æ’­æ”¾æ­Œæ›²ï¼ˆæŒ‰æ­Œæ›²åï¼‰
+            char title[100];
+            get_user_input(title, sizeof(title), "è¯·è¾“å…¥è¦æ’­æ”¾çš„æ­Œæ›²æ ‡é¢˜: ");
+            int res = play_song_by_title(&manager, title);
+            break;
+        }
+        case 4:
+        { // æ˜¾ç¤ºæ’­æ”¾åˆ—è¡¨ï¼ˆæ­£å‘ï¼‰
+            display_playlist(&manager);
+            break;
+        }
+        case 5:
+        { // æ˜¾ç¤ºæ’­æ”¾åˆ—è¡¨ï¼ˆé€†å‘ï¼‰
+            display_playlist_reverse(&manager);
+            break;
+        }
+        case 6:
+        { // å¯¼å‡ºæ’­æ”¾åˆ—è¡¨
+            char path2export[300];
+            get_user_input(path2export, sizeof(path2export), "è¯·è¾“å…¥è¦å¯¼å‡ºçš„ç›®æ ‡æ–‡ä»¶å: ");
+            int res = export_playlist(&manager, path2export);
+            break;
+        }
+        case 7:
+        { // æ’­æ”¾ä¸‹ä¸€é¦–æ­Œæ›²
+            next_song(&manager);
+            break;
+        }
+        case 8:
+        { // æ’­æ”¾ä¸Šä¸€é¦–æ­Œæ›²
+            previous_song(&manager);
+            break;
+        }
+        case 9:
+        { // éšæœºæ’­æ”¾æ­Œæ›²(éå¿…åš)
+            int res = play_song_random(&manager);
+            break;
+        }
+        case 10:
+        { // æŒ‰ç…§æ­Œæ›²åæ’åº(éå¿…åš)
+            sort_by_title(&manager);
+            break;
+        }
+        case 11:
+        { // æ¸…ç©ºæ’­æ”¾åˆ—è¡¨
+            destroy_playlist(&manager);
+            break;
+        }
+        case 0: // é€€å‡ºç¨‹åº
+            printf("æ„Ÿè°¢ä½¿ç”¨é“¾è¡¨éŸ³ä¹æ’­æ”¾å™¨ç®¡ç†å™¨!\n");
+            break;
+        default:
+            printf("? æ— æ•ˆé€‰æ‹©ï¼Œè¯·é‡æ–°è¾“å…¥\n");
+            break;
         }
 
-        // ÔİÍ££¬ÈÃÓÃ»§¿´µ½½á¹û
-        if (choice != 0) {
-            printf("\n°´»Ø³µ¼ü¼ÌĞø...");
+        // æš‚åœï¼Œè®©ç”¨æˆ·çœ‹åˆ°ç»“æœ
+        if (choice != 0)
+        {
+            printf("\næŒ‰å›è½¦é”®ç»§ç»­...");
             getchar();
         }
 
     } while (choice != 0);
 
-    // ÇåÀíÄÚ´æ
-    clear_playlist(&manager);
+    // æ¸…ç†å†…å­˜
+    destroy_playlist(&manager);
 
     return 0;
 }
