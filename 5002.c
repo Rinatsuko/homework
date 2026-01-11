@@ -99,12 +99,12 @@ strlen(s); // 结果是 5
 sizeof(s); // 结果是 100
 
 // 复制
-strcpy(dest, src)
-    // 把src的内容连同\0一起复制到dest 可能会撑爆内存
-    strncpy()
-    // 只拷贝前n个字符
-    strcat(dest, strcasec)
-    // 拼接到dest的后面
-    strcmp(s1, s2)
-    // 比较两个字符串的内容 一样 return 0
-    //<0 s1在字典里排在s2前面 不能用if(s1==s2) 这是比较内存地址是不是同一个
+// strcpy(dest, src)
+// 把src的内容连同\0一起复制到dest 可能会撑爆内存
+// strncpy()
+// 只拷贝前n个字符
+// strcat(dest, strcasec)
+// 拼接到dest的后面
+// strcmp(s1, s2)
+// 比较两个字符串的内容 一样 return 0
+//<0 s1在字典里排在s2前面 不能用if(s1==s2) 这是比较内存地址是不是同一个

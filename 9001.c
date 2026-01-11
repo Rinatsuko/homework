@@ -34,17 +34,22 @@ int stackIsEmpty(const Stack *stack);
 // 1. 初始化栈（指定初始容量和最大容量）
 StackResult stackInit(Stack *stack, int init_capacity, int max_capacity)
 {
+    // 参数合法性检查：初始容量和最大容量必须为正数，且初始容量不能超过最大容量
     if (init_capacity <= 0 || max_capacity <= 0 || init_capacity > max_capacity)
     {
         return STACK_MEM_ERR; // 非法容量参数
     }
+    // 为栈数据分配初始内存空间
     stack->data = (StackElem *)malloc(sizeof(StackElem) * init_capacity);
     if (stack->data == NULL)
     {
         return STACK_MEM_ERR; // 内存分配失败
     }
+    // 初始化栈顶指针为-1（空栈状态）
     stack->top = -1;
+    // 设置当前容量为初始容量
     stack->capacity = init_capacity;
+    // 设置最大容量限制
     stack->max_capacity = max_capacity;
     return STACK_OK;
     // 学生实现：
@@ -57,35 +62,44 @@ StackResult stackInit(Stack *stack, int init_capacity, int max_capacity)
 // 2. 压栈（将数据存入栈）
 StackResult stackPush(Stack *stack, char bracket, int position)
 {
+    // 检查栈是否已满（栈顶指针+1等于容量，说明下一个位置已经没有空间了）
     if (stack->top + 1 == stack->capacity)
     {
         // 栈满，尝试扩容
+        // 检查是否已达最大容量限制
         if (stack->capacity == stack->max_capacity)
         {
             return STACK_FULL; // 已达最大容量，无法扩容
         }
+        // 计算新容量：通常扩容为原来的2倍
         int new_capacity = stack->capacity * 2;
+        // 防止扩容后超过最大容量限制
         if (new_capacity > stack->max_capacity) // 新容量大于最大容量 则更新
         {
             new_capacity = stack->max_capacity; // 不超过最大容量
         }
+        // 使用realloc重新分配内存（在原地扩容或分配新空间并复制数据）
         StackElem *new_data = (StackElem *)realloc(stack->data, sizeof(StackElem) * new_capacity); // 扩建房子本身而不是扩大房产证
         if (new_data == NULL)
         {
             return STACK_MEM_ERR; // 内存分配失败
         }
+        // 更新栈的数据指针和容量
         stack->data = new_data;
         stack->capacity = new_capacity;
+        // 将新元素压入栈顶（top+1的位置）
         stack->data[stack->top + 1].bracket = bracket;   // 新的栈顶元素
         stack->data[stack->top + 1].position = position; // 新的栈顶元素索引
+        // 栈顶指针上移
         stack->top++;
         return STACK_OK;
     }
     else
     {
-        // 栈未满，直接压栈
+        // 栈未满，直接将元素压入栈顶+1的位置
         stack->data[stack->top + 1].bracket = bracket;
         stack->data[stack->top + 1].position = position;
+        // 栈顶指针上移
         stack->top++;
         return STACK_OK;
     }
@@ -100,13 +114,17 @@ StackResult stackPush(Stack *stack, char bracket, int position)
 // 3. 弹栈（取出栈顶元素，通过elem输出）
 StackResult stackPop(Stack *stack, StackElem *elem)
 {
+    // 检查栈是否为空
     int a = stackIsEmpty(stack);
     if (a == 1)
     {
-        return STACK_EMPTY;
+        return STACK_EMPTY; // 空栈无法弹出元素
     }
+    // 将栈顶元素的括号字符赋值给输出参数elem
     elem->bracket = stack->data[stack->top].bracket;
+    // 将栈顶元素的位置索引赋值给输出参数elem
     elem->position = stack->data[stack->top].position;
+    // 栈顶指针下移（逻辑上移除栈顶元素）
     stack->top--;
     return STACK_OK;
     // 学生实现：
@@ -115,15 +133,18 @@ StackResult stackPop(Stack *stack, StackElem *elem)
     // 步骤3：栈顶指针-1
     // 步骤4：返回STACK_OK
 }
-// 4. 查看栈顶
+// 4. 查看栈顶（只查看不弹出，栈顶指针不变）
 StackResult stackPeek(Stack *stack, StackElem *elem)
 {
+    // 检查栈是否为空
     int a = stackIsEmpty(stack);
     if (a == 1)
     {
-        return STACK_EMPTY;
+        return STACK_EMPTY; // 空栈无法查看栈顶
     }
+    // 将栈顶元素的括号字符赋值给输出参数elem（不删除）
     elem->bracket = stack->data[stack->top].bracket;
+    // 将栈顶元素的位置索引赋值给输出参数elem（不删除）
     elem->position = stack->data[stack->top].position;
     return STACK_OK;
 }
@@ -131,6 +152,7 @@ StackResult stackPeek(Stack *stack, StackElem *elem)
 // 5. 判空（返回1表示空，0表示非空）
 int stackIsEmpty(const Stack *stack)
 {
+    // 当栈顶指针为-1时，栈为空，返回1；否则返回0
     return stack->top == -1 ? 1 : 0;
     // 学生实现：返回stack->top == -1 ? 1 : 0
 }
@@ -139,64 +161,80 @@ int stackIsEmpty(const Stack *stack)
 void stackDestroy(Stack *stack)
 {
     // 学生实现：释放stack->data的内存，重置top=-1、capacity=0
+    // 释放动态分配的栈数据数组内存
     free(stack->data);
+    // 重置栈顶指针为-1（空栈状态）
     stack->top = -1;
+    // 重置容量为0
     stack->capacity = 0;
+    // 重置最大容量为0
     stack->max_capacity = 0;
 }
 // 1为真 0为假
 //  辅助函数
-//  判断是否为左括号
+//  判断是否为左括号（{ 或 [）
 int isLeftBracket(char ch)
 {
+    // 检查字符是否为 { 或 [
     return ch == '{' || ch == '[';
 }
-// 判断是否为右括号
+// 判断是否为右括号（} 或 ]）
 int isRightBracket(char ch)
 {
+    // 检查字符是否为 } 或 ]
     return ch == '}' || ch == ']';
 }
-// 判断括号是否匹配
+// 判断左右括号是否匹配
 int isBracketMatch(char left, char right)
 {
+    // { 与 } 匹配，或者 [ 与 ] 匹配
     return (left == '{' && right == '}') || (left == '[' && right == ']');
 }
 
-// 栈基础版本实现
+// 栈基础版本实现（不考虑字符串内的括号）
 int jsonBracketCheckBasic(const char *json_str)
 {
+    // 边界情况：空字符串或NULL视为合法
     if (json_str == NULL || strlen(json_str) == 0)
     {
         return 1; // 空字符串视为合法
     }
+    // 初始化栈（初始容量10，最大容量100）
     Stack stack;
     stackInit(&stack, 10, 100);
     int len = strlen(json_str);
+    // 遍历JSON字符串的每个字符
     for (int i = 0; i < len; i++)
     {
+        // 遇到左括号：压入栈中
         if (json_str[i] == '{' || json_str[i] == '[')
         {
             stackPush(&stack, json_str[i], i);
         }
+        // 遇到右括号：从栈中弹出左括号进行匹配
         else if (json_str[i] == '}' || json_str[i] == ']')
         {
             StackElem elem;
             StackResult res = stackPop(&stack, &elem);
+            // 如果栈为空，说明右括号多余（没有对应的左括号）
             if (res == STACK_EMPTY)
             {
                 stackDestroy(&stack);
-                return 0;
+                return 0; // 不合法
             }
+            // 检查弹出的左括号与当前右括号是否匹配
             if (!isBracketMatch(elem.bracket, json_str[i]))
             {
                 stackDestroy(&stack);
-                return 0;
+                return 0; // 括号类型不匹配
             }
         }
+        // 其他字符（字母、数字、引号等）：跳过
     }
+    // 遍历结束后，检查栈是否为空
     int empty = stackIsEmpty(&stack);
     stackDestroy(&stack);
-    return empty;
+    return empty; // 栈为空说明所有左括号都有对应的右括号，合法
 }
 // 学生实现：
 // 步骤1：处理边界情况（json_str为NULL或空字符串，返回1）
@@ -208,70 +246,80 @@ int jsonBracketCheckBasic(const char *json_str)
 // 步骤4：遍历结束后，若栈为空则返回1（合法），否则返回0（左括号多余）
 // 步骤5：销毁栈（stackDestroy）
 
-// 栈进阶版本实现
+// 栈进阶版本实现（考虑字符串内的括号和转义字符）
 // 学生任务：学习状态管理，理解字符串内的括号不应该参与匹配，同时处理转义字符
 int jsonBracketCheckAdvanced(const char *json_str)
 {
+    // 边界情况：空字符串或NULL视为合法
     if (json_str == NULL || strlen(json_str) == 0)
     {
         return 1;
     }
+    // 初始化栈（初始容量10，最大容量100）
     Stack stack;
     stackInit(&stack, 10, 100);
     int len = strlen(json_str);
-    int in_string = 0; // 标记是否在字符串内
-    int escape = 0;    // 标记是否在转义状态
+    int in_string = 0; // 标记是否在字符串内（0=不在，1=在）
+    int escape = 0;    // 标记是否在转义状态（0=不在，1=在）
+    // 遍历JSON字符串的每个字符
     for (int i = 0; i < len; i++)
     {
         char ch = json_str[i];
+        // 如果当前在字符串内
         if (in_string)
         {
+            // 如果上一个字符是转义符 \
             if (escape)
             {
-                escape = 0; // 取消转义状态
+                escape = 0; // 取消转义状态（当前字符被转义，无特殊含义）
             }
-            else
+            else // 不在转义状态
             {
-                if (ch == '\\') // 捕捉到转义符 下一步进入转义状态
+                if (ch == '\\') // 捕捉到转义符 \ （C语言中需要写成 \\\\）
                 {
-                    escape = 1; // 进入转义状态
+                    escape = 1; // 进入转义状态（下一个字符会被转义）
                 }
-                else if (ch == '"')
+                else if (ch == '"') // 遇到未转义的引号
                 {
                     in_string = 0; // 退出字符串状态
                 }
+                // 字符串内的其他字符（包括括号）都忽略
             }
         }
-        else
+        else // 不在字符串内
         {
-            if (ch == '"')
+            if (ch == '"') // 遇到引号
             {
                 in_string = 1; // 进入字符串状态
             }
-            else if (isLeftBracket(ch))
+            else if (isLeftBracket(ch)) // 遇到左括号
             {
-                stackPush(&stack, ch, i);
+                stackPush(&stack, ch, i); // 压入栈中
             }
-            else if (isRightBracket(ch))
+            else if (isRightBracket(ch)) // 遇到右括号
             {
                 StackElem elem;
                 StackResult res = stackPop(&stack, &elem);
+                // 如果栈为空，说明右括号多余
                 if (res == STACK_EMPTY)
                 {
                     stackDestroy(&stack);
-                    return 0;
+                    return 0; // 不合法
                 }
+                // 检查括号是否匹配
                 if (!isBracketMatch(elem.bracket, ch))
                 {
                     stackDestroy(&stack);
-                    return 0;
+                    return 0; // 括号类型不匹配
                 }
             }
+            // 其他字符（字母、数字、冒号等）：跳过
         }
     }
+    // 遍历结束后，检查栈是否为空 且 不在字符串内
     int empty = stackIsEmpty(&stack);
     stackDestroy(&stack);
-    return empty && (!in_string);
+    return empty && (!in_string); // 两个条件都满足才合法
 
     // 学生实现：
     // 步骤1：处理边界情况（json_str为NULL或空字符串，返回1）
